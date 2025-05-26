@@ -11,28 +11,41 @@ export function TodoList() {
   const [newTodoDescription, setNewTodoDescription] = useState('');
 
   useEffect(() => {
+    // Load initial todos
     loadTodos();
 
-    todoSocket.onTodoCreated((todo) => {
+    // Set up socket event listeners
+    const handleTodoCreated = (todo: Todo) => {
+      console.log('Handling todo created:', todo);
       setTodos((prev) => [...prev, todo]);
-    });
+    };
 
-    todoSocket.onTodoUpdated((updatedTodo) => {
+    const handleTodoUpdated = (updatedTodo: Todo) => {
+      console.log('Handling todo updated:', updatedTodo);
       setTodos((prev) =>
         prev.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
       );
-    });
+    };
 
-    todoSocket.onTodoDeleted((id) => {
+    const handleTodoDeleted = (id: string) => {
+      console.log('Handling todo deleted:', id);
       setTodos((prev) => prev.filter((todo) => todo.id !== id));
-    });
+    };
 
-    todoSocket.onTodoToggled((toggledTodo) => {
+    const handleTodoToggled = (toggledTodo: Todo) => {
+      console.log('Handling todo toggled:', toggledTodo);
       setTodos((prev) =>
         prev.map((todo) => (todo.id === toggledTodo.id ? toggledTodo : todo))
       );
-    });
+    };
 
+    // Register socket event listeners
+    todoSocket.onTodoCreated(handleTodoCreated);
+    todoSocket.onTodoUpdated(handleTodoUpdated);
+    todoSocket.onTodoDeleted(handleTodoDeleted);
+    todoSocket.onTodoToggled(handleTodoToggled);
+
+    // Cleanup function
     return () => {
       todoSocket.disconnect();
     };
@@ -40,15 +53,30 @@ export function TodoList() {
 
   const loadTodos = async () => {
     try {
+      console.log('Loading todos...');
       const data = await todoApi.list();
-      setTodos(data);
+      console.log('Loaded todos:', data);
+      // Ensure we're getting the correct data structure
+      const formattedTodos = data.map((todo: any) => {
+        if (todo.props) {
+          return todo.props;
+        }
+        return todo;
+      });
+      setTodos(formattedTodos);
     } catch (error) {
       console.error('Error loading todos:', error);
     }
   };
 
   const handleCreateTodo = async () => {
+    if (!newTodoTitle.trim()) {
+      alert('Title is required');
+      return;
+    }
+
     try {
+      console.log('Creating todo:', { title: newTodoTitle, description: newTodoDescription });
       await todoApi.create({
         title: newTodoTitle,
         description: newTodoDescription,
@@ -62,12 +90,14 @@ export function TodoList() {
   };
 
   const handleUpdateTodo = (updatedTodo: Todo) => {
+    console.log('Updating todo in state:', updatedTodo);
     setTodos((prev) =>
       prev.map((todo) => (todo.id === updatedTodo.id ? updatedTodo : todo))
     );
   };
 
   const handleDeleteTodo = (id: string) => {
+    console.log('Deleting todo from state:', id);
     setTodos((prev) => prev.filter((todo) => todo.id !== id));
   };
 
@@ -119,14 +149,18 @@ export function TodoList() {
       )}
 
       <div style={{ marginTop: '20px' }}>
-        {todos.map((todo) => (
-          <TodoItem
-            key={todo.id}
-            todo={todo}
-            onUpdate={handleUpdateTodo}
-            onDelete={handleDeleteTodo}
-          />
-        ))}
+        {todos.length === 0 ? (
+          <p>No todos yet. Create one!</p>
+        ) : (
+          todos.map((todo) => (
+            <TodoItem
+              key={todo.id}
+              todo={todo}
+              onUpdate={handleUpdateTodo}
+              onDelete={handleDeleteTodo}
+            />
+          ))
+        )}
       </div>
     </div>
   );
