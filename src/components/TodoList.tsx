@@ -39,14 +39,17 @@ export function TodoList() {
       );
     };
 
-    // Register socket event listeners
-    todoSocket.onTodoCreated(handleTodoCreated);
-    todoSocket.onTodoUpdated(handleTodoUpdated);
-    todoSocket.onTodoDeleted(handleTodoDeleted);
-    todoSocket.onTodoToggled(handleTodoToggled);
+    const socket = todoSocket.connect();
+    const cleanupFunctions = [
+      todoSocket.onTodoCreated(handleTodoCreated),
+      todoSocket.onTodoUpdated(handleTodoUpdated),
+      todoSocket.onTodoDeleted(handleTodoDeleted),
+      todoSocket.onTodoToggled(handleTodoToggled)
+    ];
 
     // Cleanup function
     return () => {
+      cleanupFunctions.forEach(cleanup => cleanup());
       todoSocket.disconnect();
     };
   }, []);
