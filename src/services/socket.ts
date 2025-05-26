@@ -5,7 +5,8 @@ let socket: Socket | null = null;
 
 const createSocket = () => {
   if (!socket) {
-    socket = io('http://localhost:3000', {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    socket = io(socketUrl, {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
